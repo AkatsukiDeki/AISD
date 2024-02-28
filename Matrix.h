@@ -1,18 +1,23 @@
-﻿#include <iostream>
-#include <vector>
+#include <iostream>
 #include <random>
 #include <complex>
 
 template <typename T>
 class Matrix {
 private:
-    std::vector<std::vector<T>> data;
+    T** data;
     size_t rows;
     size_t cols;
 
 public:
     Matrix(size_t rows, size_t cols, T value) : rows(rows), cols(cols) {
-        data.resize(rows, std::vector<T>(cols, value));
+        data = new T * [rows];
+        for (size_t i = 0; i < rows; ++i) {
+            data[i] = new T[cols];
+            for (size_t j = 0; j < cols; ++j) {
+                data[i][j] = value;
+            }
+        }
     }
 
     Matrix(size_t rows, size_t cols, T lower, T upper) : rows(rows), cols(cols) {
@@ -20,8 +25,9 @@ public:
         std::mt19937 gen(rd());
         std::uniform_real_distribution<T> dis(lower, upper);
 
-        data.resize(rows, std::vector<T>(cols));
+        data = new T * [rows];
         for (size_t i = 0; i < rows; ++i) {
+            data[i] = new T[cols];
             for (size_t j = 0; j < cols; ++j) {
                 data[i][j] = dis(gen);
             }
@@ -35,7 +41,6 @@ public:
     const T& operator()(size_t i, size_t j) const {
         return data[i][j];
     }
-
 
     Matrix<T> operator+(const Matrix<T>& other) {
         Matrix<T> result(rows, cols, 0);
@@ -69,33 +74,39 @@ public:
         return result;
     }
 
-    Matrix<T> operator/(T scalar) {
-        if (scalar == 0) {
-            std::cerr << "Error: Division by zero" << std::endl;
-            return *this;
-        }
+    bool operator==(const Matrix<T>& other) const {
+        if (rows != other.rows || cols != other.cols)
+            return false;
 
-        Matrix<T> result(rows, cols, 0);
         for (size_t i = 0; i < rows; ++i) {
             for (size_t j = 0; j < cols; ++j) {
-                result(i, j) = data[i][j] / scalar;
+                if (data[i][j] != other(i, j))
+                    return false;
             }
         }
-        return result;
+        return true;
     }
 
-    T trace() {
-        if (rows != cols) {
-            std::cerr << "Error: Trace is only defined for square matrices" << std::endl;
-            return T();
-        }
-
-        T sum = T();
-        for (size_t i = 0; i < rows; ++i) {
-            sum += data[i][i];
-        }
-        return sum;
+    bool operator!=(const Matrix<T>& other) const {
+        return !(*this == other);
     }
 
-    
+    friend std::ostream& operator<<(std::ostream& out, const Matrix<T>& matrix) {
+        for (size_t i = 0; i < matrix.rows; ++i) {
+            for (size_t j = 0; j < matrix.cols; ++j) {
+                out << matrix(i, j) << " ";
+            }
+            out << std::endl;
+        }
+        return out;
+    }
+
+    ~Matrix() {
+        if (data != nullptr) {
+            for (size_t i = 0; i < rows; ++i) {
+                delete[] data[i];
+            }
+            delete[] data;
+        }
+    }
 };
